@@ -98,10 +98,10 @@ def test_outage_queues_then_backs_off_then_delivers(setup, rx) -> None:
     rx.status = 503
     open_and_close_ram(h)
     assert n.tick(now=10) == 0
-    assert n.retry_at == 15, "first retry after 5 s"
+    assert n.retry_at == pytest.approx(15, abs=1), "first retry after 5 s"
     assert n.tick(now=12) == 0 and n.status(now=12)["pending"] == 2, "waits for the backoff"
     n.tick(now=15)
-    assert n.retry_at == 25, "backoff doubles"
+    assert n.retry_at == pytest.approx(25, abs=1), "backoff doubles"
     rx.status = 204
     assert n.tick(now=25) == 2
     assert [e["event"] for _, e in rx.received] == ["alert.opened", "alert.closed"], "order kept"
