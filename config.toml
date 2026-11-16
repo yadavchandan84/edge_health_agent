@@ -1,0 +1,82 @@
+# Zero Forg edge health agent: production defaults.
+# Every key is optional; anything left out uses the default shown in healthagent/config.py.
+# Unknown keys are rejected at startup, so a typo cannot silently fall back to a default.
+
+[agent]
+name = ""                  # box id shown in /health and webhooks; empty = hostname
+sample_interval = 5        # seconds between system/process samples
+probe_interval  = 15       # seconds between network probe rounds
+db_path   = "healthagent.db"
+log_level = "INFO"
+
+[api]
+host  = "127.0.0.1"        # use 0.0.0.0 to reach it from the LAN, and then set a token
+port  = 8765
+token = ""                 # if set: Authorization: Bearer <token>, or ?token= for the dashboard
+
+[retention]
+raw_hours         = 24     # 5 s points
+rollup_days       = 7      # 1-minute avg/min/max
+closed_alert_days = 30
+
+[probes]
+target_host   = "cloudflare.com"  # DNS resolution + TCP connect target
+tcp_port      = 443
+internet_host = "1.1.1.1"         # ping target outside the site
+gateway       = "auto"            # read from the default route, or set an IP
+http_url      = "https://www.google.com/generate_204"  # API endpoint: status + latency
+timeout       = 2.0             # per probe, seconds
+ping_count    = 3
+
+[collect]
+exclude_interfaces = ["lo"]
+process_limit = 50
+
+# ---- alert rules (values shown are the defaults) ----------------------------
+[rules.cpu_high]           # total CPU > 85 % on every sample for 60 s
+open_above  = 85
+clear_below = 80
+open_for    = 60
+clear_for   = 10
+
+[rules.ram_high]
+open_above  = 90
+clear_below = 85
+
+[rules.disk_high]
+open_above  = 90
+clear_below = 85
+
+[rules.network_lost]       # gateway or internet ping fails 3 rounds in a row
+failures = 3
+
+[rules.memory_climbing]    # RSS up in >= 9 of the last 10 one-minute samples and >= 50 MB
+sample_interval = 60
+window          = 10
+min_rises       = 9
+min_growth_mb   = 50
+flat_samples_to_clear = 3
+
+[rules.zombie]
+min_age = 30
+
+[rules.process_died]
+missing_grace = 60         # required entries: seconds of "not running" before alerting
+
+# ---- notifications: send every alert open/close off the box ------------------
+# Queued in SQLite and retried with backoff, so alerts raised while the uplink is
+# down are delivered when it comes back. Leave webhook_url empty to disable.
+[notify]
+webhook_url = ""
+secret      = ""           # if set, requests carry X-Healthagent-Signature: sha256=<HMAC>
+timeout     = 5.0
+outbox_days = 7
+
+# ---- watch list: alert when one of these exits --------------------------------
+# by = "name" matches the process name exactly; by = "cmdline" matches a substring.
+# required = true also alerts when no instance is running at all.
+# [[watch]]
+# name     = "camera-pipeline"
+# match    = "camera_pipeline.py"
+# by       = "cmdline"
+# required = true

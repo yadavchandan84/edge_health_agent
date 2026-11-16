@@ -1,0 +1,38 @@
+# Demo config for the recorded walkthrough (docs/DEMO.md).
+#
+# Every threshold from the brief is unchanged. One number is shortened so the whole
+# demo fits a 10-minute recording:
+#
+#   memory_climbing.sample_interval: 60 s -> 10 s
+#     The rule logic is identical (>= 9 rises in the last 10 samples, >= 50 MB total),
+#     it just samples faster, so a leak is caught in ~100 s instead of ~10 min.
+#
+# CPU high still needs 60 s, network lost still needs 3 failed 15 s rounds.
+
+[agent]
+# Relative to where you start the agent. Keep it on a real disk: on WSL, /tmp is wiped
+# whenever the distro shuts down, and /mnt/c (9p) is slow and unsafe for SQLite locking.
+db_path = "demo.db"
+
+[api]
+host = "0.0.0.0"           # reachable from the Windows browser when running in WSL / a VM
+
+[probes]
+target_host   = "cloudflare.com"
+internet_host = "1.1.1.1"
+http_url      = "https://www.google.com/generate_204"
+
+[rules.memory_climbing]
+sample_interval = 10
+
+# Alerts leave the box: run demo/webhook_receiver.py to watch them arrive. If the
+# receiver is not running, notifications simply wait in the outbox and are retried.
+[notify]
+webhook_url = "http://127.0.0.1:9999/alerts"
+secret      = "demo-secret"
+
+[[watch]]
+name  = "camera-sim"
+match = "watched_service.py"
+by    = "cmdline"
+required = true            # also alert if it is not running at all

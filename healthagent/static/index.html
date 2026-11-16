@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edge health · Zero Forg</title>
+<style>
+  :root {
+    --bg: #0f1216; --panel: #171b21; --panel2: #1d222a; --line: #2a313b; --text: #e6e9ee;
+    --muted: #8b95a3; --ok: #2fbf71; --warn: #f0b429; --crit: #ef4f4f; --accent: #5aa9ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+           padding: 12px 20px; background: rgba(15,18,22,.92); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+  h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: .2px; }
+  h1 small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+  h2 { font-size: 13px; margin: 0 0 8px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+  .badge { padding: 6px 14px; border-radius: 999px; font-weight: 700; letter-spacing: 1px; font-size: 13px; }
+  .b-ok { background: rgba(47,191,113,.15); color: var(--ok); border: 1px solid var(--ok); }
+  .b-warn { background: rgba(240,180,41,.15); color: var(--warn); border: 1px solid var(--warn); }
+  .b-critical { background: rgba(239,79,79,.15); color: var(--crit); border: 1px solid var(--crit); animation: pulse 1.6s infinite; }
+  .b-down { background: #2a2f37; color: var(--muted); border: 1px solid var(--line); }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(239,79,79,.0), 0 0 18px rgba(239,79,79,.35); } }
+  .stats { display: flex; gap: 18px; color: var(--muted); flex-wrap: wrap; }
+  .stats b { color: var(--text); font-weight: 600; }
+  .spacer { flex: 1; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { background: transparent; color: var(--muted); border: 0; padding: 6px 12px; cursor: pointer; font: inherit; }
+  .seg button.on { background: var(--panel2); color: var(--text); }
+  main { padding: 16px 20px 40px; display: grid; gap: 16px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+  .chart { position: relative; height: 170px; }
+  .chart canvas { width: 100%; height: 100%; display: block; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); font-size: 12px; margin: -2px 0 6px; min-height: 18px; }
+  .legend i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+  .tip { position: absolute; pointer-events: none; background: #0b0e12; border: 1px solid var(--line); border-radius: 6px;
+         padding: 6px 8px; font-size: 12px; white-space: nowrap; display: none; z-index: 3; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: 0; }
+  .sev { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
+  .sev-critical { background: rgba(239,79,79,.18); color: var(--crit); }
+  .sev-warn { background: rgba(240,180,41,.18); color: var(--warn); }
+  .muted { color: var(--muted); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+  .flag { display: inline-block; font-size: 10px; padding: 1px 6px; margin: 0 3px 2px 0; border-radius: 3px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
+  .flag.hot { color: var(--crit); border-color: rgba(239,79,79,.5); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .tile { background: var(--panel2); border-radius: 8px; padding: 10px 12px; border-left: 3px solid var(--line); }
+  .tile.ok { border-left-color: var(--ok); } .tile.bad { border-left-color: var(--crit); }
+  .tile .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  .tile .v { font-size: 18px; font-weight: 600; margin-top: 2px; }
+  .tile .s { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .empty { color: var(--muted); padding: 10px 0; }
+  .two { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); }
+  .scroll { max-height: 360px; overflow: auto; }
+  .bar { height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .bar > span { display: block; height: 100%; background: var(--accent); }
+  select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font: inherit; }
+  .row { display: flex; align-items: center; gap: 10px; justify-content: space-between; margin-bottom: 8px; }
+  .row h2 { margin: 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Edge health <small id="host">Zero Forg agent</small></h1>
+  <span id="badge" class="badge b-down">CONNECTING</span>
+  <div class="stats" id="stats"></div>
+  <div class="spacer"></div>
+  <div class="seg" id="range">
+    <button data-r="1h" class="on">Last hour</button>
+    <button data-r="24h">Last 24 h</button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="row"><h2>Open alerts</h2><span class="muted" id="updated"></span></div>
+    <div id="open"></div>
+  </section>
+
+  <section class="card">
+    <h2>Network probes</h2>
+    <div class="tiles" id="probes"></div>
+  </section>
+
+  <section class="grid" id="charts"></section>
+
+  <section class="two">
+    <div class="card">
+      <div class="row"><h2>Alert history</h2>
+        <select id="hist-filter"><option value="">all rules</option></select></div>
+      <div class="scroll" id="history"></div>
+    </div>
+    <div class="card">
+      <div class="row"><h2>Top processes</h2>
+        <select id="proc-sort"><option value="cpu">by CPU</option><option value="mem">by memory</option><option value="fds">by open FDs</option><option value="threads">by threads</option></select></div>
+      <div class="scroll" id="procs"></div>
+    </div>
+  </section>
+
+  <section class="two">
+    <div class="card"><h2>Filesystems</h2><div id="disks"></div></div>
+    <div class="card"><h2>Interfaces &amp; listening ports</h2><div id="ifaces"></div><div id="ports" style="margin-top:10px"></div></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const TOKEN = new URLSearchParams(location.search).get("token");
+const COLORS = ["#5aa9ff", "#f0b429", "#2fbf71", "#ef4f4f", "#b07cff", "#22c7c7", "#ff8f5a", "#d4d8de", "#8bd450", "#ff6fae"];
+let RANGE = "1h";
+
+// Each chart: metrics to plot, how to label each series, fixed y range, threshold
+// line, and which alert rules to shade so an alert's open..close window is visible.
+const CHARTS = [
+  { id: "cpu", title: "CPU total %", names: ["cpu.total", "cpu.iowait"], label: s => s.name === "cpu.total" ? "total" : "iowait",
+    y: [0, 100], unit: "%", threshold: 85, alerts: ["cpu_high", "proc_cpu_high"] },
+  { id: "cores", title: "CPU per core %", names: ["cpu.core"], label: s => "core " + s.subject, y: [0, 100], unit: "%", thin: true },
+  { id: "mem", title: "Memory %", names: ["mem.percent", "swap.percent"], label: s => s.name.split(".")[0],
+    y: [0, 100], unit: "%", threshold: 90, alerts: ["ram_high", "proc_mem_high", "memory_climbing"] },
+  { id: "disk", title: "Disk usage % per mount", names: ["disk.percent"], label: s => s.subject, y: [0, 100], unit: "%", threshold: 90,
+    alerts: ["disk_high", "disk_inodes_high"] },
+  { id: "dns", title: "DNS & TCP connect time (ms)", names: ["probe.dns_ms", "probe.tcp_ms"], native: 15,
+    label: s => (s.name === "probe.dns_ms" ? "DNS " : "TCP ") + s.subject, unit: "ms", alerts: ["network_lost"] },
+  { id: "loss", title: "Packet loss % (gateway, internet)", names: ["probe.loss_pct"], native: 15, label: s => s.subject + " loss",
+    y: [0, 100], unit: "%", alerts: ["network_lost"] },
+  { id: "net", title: "Bandwidth per interface", names: ["net.rx_bps", "net.tx_bps"],
+    label: s => s.subject + (s.name === "net.rx_bps" ? " ↓" : " ↑"), unit: "B/s", bytes: true },
+  { id: "drops", title: "Packet drops & errors / sample", names: ["net.rx_drops", "net.tx_drops", "net.rx_errors", "net.tx_errors"],
+    label: s => s.subject + " " + s.name.split(".")[1].replace("_", " "), unit: "", hideZero: true },
+  { id: "io", title: "Disk I/O", names: ["diskio.read_bps", "diskio.write_bps"],
+    label: s => s.subject + (s.name.endsWith("read_bps") ? " read" : " write"), unit: "B/s", bytes: true },
+  { id: "load", title: "Load average", names: ["load.1", "load.5", "load.15"], label: s => s.name, unit: "" },
+  { id: "tcp", title: "TCP connections", names: ["tcp.connections"], label: s => s.subject, unit: "", hideZero: true },
+  { id: "agent", title: "Agent self: CPU % of one core (budget 5)", names: ["agent.cpu_pct"], label: () => "agent cpu", unit: "%", threshold: 5 },
+  { id: "agentmem", title: "Agent self: RSS MB (budget 150)", names: ["agent.rss_mb", "agent.db_mb"],
+    label: s => s.name === "agent.rss_mb" ? "rss" : "db size", unit: "MB", threshold: 150 },
+];
+
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+async function api(path) {
+  const url = path + (TOKEN ? (path.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(TOKEN) : "");
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error(path + " " + r.status);
+  return r.json();
+}
+function fmtBytes(v) {
+  const a = Math.abs(v); const u = ["B", "KB", "MB", "GB", "TB"]; let i = 0, x = a;
+  while (x >= 1024 && i < u.length - 1) { x /= 1024; i++; }
+  return (v < 0 ? "-" : "") + (x >= 100 || i === 0 ? x.toFixed(0) : x.toFixed(1)) + " " + u[i];
+}
+function fmtVal(v, c) {
+  if (v == null) return "–";
+  if (c.bytes) return fmtBytes(v) + (c.unit === "B/s" ? "/s" : "");
+  const n = Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2);
+  return n + (c.unit && c.unit !== "B/s" ? (c.unit === "%" ? "%" : " " + c.unit) : "");
+}
+const pad = n => String(n).padStart(2, "0");
+function hhmm(ts, sec) { const d = new Date(ts * 1000); return pad(d.getHours()) + ":" + pad(d.getMinutes()) + (sec ? ":" + pad(d.getSeconds()) : ""); }
+function stamp(ts) { if (!ts) return "–"; const d = new Date(ts * 1000); return `${d.getMonth() + 1}/${d.getDate()} ${hhmm(ts, true)}`; }
+function ago(s) { s = Math.max(0, s); if (s < 60) return Math.round(s) + "s"; if (s < 3600) return Math.floor(s / 60) + "m " + Math.round(s % 60) + "s"; if (s < 86400) return Math.floor(s / 3600) + "h " + Math.floor(s % 3600 / 60) + "m"; return Math.floor(s / 86400) + "d " + Math.floor(s % 86400 / 3600) + "h"; }
+const RULE_UNITS = { cpu_high: "%", ram_high: "%", disk_high: "%", disk_inodes_high: "%", proc_cpu_high: "%", proc_mem_high: "%",
+  memory_climbing: " MB", zombie: " s", process_died: " s down", network_lost: " fails", endpoint_down: " fails" };
+const peak = a => a.peak_value == null ? "–" : (+a.peak_value).toFixed(a.peak_value >= 100 ? 0 : 1) + (RULE_UNITS[a.rule] ?? "");
+
+// ---------- chart ----------
+class Chart {
+  constructor(card, cfg) {
+    this.cfg = cfg; this.data = []; this.bands = [];
+    card.innerHTML = `<h2>${esc(cfg.title)}</h2><div class="legend"></div><div class="chart"><canvas></canvas><div class="tip"></div></div>`;
+    this.legend = card.querySelector(".legend"); this.canvas = card.querySelector("canvas"); this.tip = card.querySelector(".tip");
+    this.canvas.addEventListener("mousemove", e => this.hover(e));
+    this.canvas.addEventListener("mouseleave", () => { this.tip.style.display = "none"; this.hx = null; this.draw(); });
+    new ResizeObserver(() => this.draw()).observe(this.canvas);
+  }
+  set(series, since, until, step, bands) {
+    const c = this.cfg;
+    this.series = series.filter(s => s.points.length && (!c.hideZero || s.points.some(p => p[1] !== 0)));
+    this.since = since; this.until = until; this.step = step; this.bands = bands || [];
+    this.legend.innerHTML = this.series.length
+      ? this.series.map((s, i) => `<span><i style="background:${COLORS[i % COLORS.length]}"></i>${esc(c.label(s))}</span>`).join("")
+      : `<span>no data yet</span>`;
+    this.draw();
+  }
+  geom() {
+    const r = this.canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    return { w: r.width, h: r.height, dpr, l: 46, rgt: 8, t: 6, b: 18 };
+  }
+  yRange() {
+    const c = this.cfg;
+    if (c.y) return c.y;
+    let hi = 0;
+    for (const s of this.series) for (const p of s.points) if (p[1] > hi) hi = p[1];
+    if (c.threshold && hi < c.threshold * 1.2) hi = c.threshold * 1.2;
+    return [0, hi > 0 ? hi * 1.12 : 1];
+  }
+  draw() {
+    const g = this.geom(); if (!g.w) return;
+    const cv = this.canvas, ctx = cv.getContext("2d");
+    cv.width = Math.round(g.w * g.dpr); cv.height = Math.round(g.h * g.dpr);
+    ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0); ctx.clearRect(0, 0, g.w, g.h);
+    if (!this.series) return;
+    const [y0, y1] = this.yRange(), c = this.cfg;
+    const pw = g.w - g.l - g.rgt, ph = g.h - g.t - g.b;
+    const X = ts => g.l + (ts - this.since) / (this.until - this.since) * pw;
+    const Y = v => g.t + ph - (Math.min(Math.max(v, y0), y1) - y0) / (y1 - y0) * ph;
+    this.X = X; this.g = g;
+    ctx.font = "11px system-ui, sans-serif"; ctx.fillStyle = "#8b95a3"; ctx.strokeStyle = "#2a313b"; ctx.lineWidth = 1;
+    // alert windows
+    for (const b of this.bands) {
+      const xa = Math.max(g.l, X(b.from)), xb = Math.min(g.l + pw, X(b.to));
+      if (xb <= xa) continue;
+      ctx.fillStyle = b.sev === "critical" ? "rgba(239,79,79,.14)" : "rgba(240,180,41,.13)";
+      ctx.fillRect(xa, g.t, Math.max(2, xb - xa), ph);
+      ctx.fillStyle = b.sev === "critical" ? "#ef4f4f" : "#f0b429"; ctx.fillRect(xa, g.t, 1.5, ph);
+    }
+    ctx.fillStyle = "#8b95a3";
+    // grid + y labels
+    for (let i = 0; i <= 4; i++) {
+      const v = y0 + (y1 - y0) * i / 4, y = Y(v);
+      ctx.beginPath(); ctx.moveTo(g.l, y + .5); ctx.lineTo(g.l + pw, y + .5); ctx.stroke();
+      ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      ctx.fillText(c.bytes ? fmtBytes(v) : (v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(0) : v.toFixed(1)), g.l - 6, y);
+    }
+    // x labels
+    const span = this.until - this.since, stepX = span <= 3600 ? 600 : span <= 6 * 3600 ? 3600 : 4 * 3600;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (let t = Math.ceil(this.since / stepX) * stepX; t <= this.until; t += stepX) ctx.fillText(hhmm(t), X(t), g.t + ph + 4);
+    // threshold
+    if (c.threshold != null && c.threshold <= y1) {
+      ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = "rgba(239,79,79,.7)";
+      ctx.beginPath(); ctx.moveTo(g.l, Y(c.threshold) + .5); ctx.lineTo(g.l + pw, Y(c.threshold) + .5); ctx.stroke(); ctx.restore();
+    }
+    // lines; break where samples are missing so outages show as gaps
+    const gap = Math.max(this.step, c.native || 5) * 2.5;
+    this.series.forEach((s, i) => {
+      ctx.strokeStyle = COLORS[i % COLORS.length]; ctx.lineWidth = c.thin ? 1 : 1.6; ctx.lineJoin = "round";
+      ctx.beginPath(); let prev = null, lone = [];
+      for (const [ts, v] of s.points) {
+        const x = X(ts), y = Y(v);
+        if (prev === null || ts - prev > gap) { ctx.moveTo(x, y); lone.push([x, y]); } else { ctx.lineTo(x, y); lone.pop(); lone.push(null); }
+        prev = ts;
+      }
+      ctx.stroke();
+      ctx.fillStyle = ctx.strokeStyle;
+      for (const p of lone) if (p) ctx.fillRect(p[0] - 1.5, p[1] - 1.5, 3, 3);
+    });
+    if (this.hx != null) {
+      ctx.strokeStyle = "rgba(230,233,238,.35)"; ctx.beginPath(); ctx.moveTo(this.hx + .5, g.t); ctx.lineTo(this.hx + .5, g.t + ph); ctx.stroke();
+    }
+  }
+  hover(e) {
+    if (!this.series || !this.series.length || !this.g) return;
+    const r = this.canvas.getBoundingClientRect(), x = e.clientX - r.left, g = this.g;
+    const pw = g.w - g.l - g.rgt;
+    const ts = this.since + (x - g.l) / pw * (this.until - this.since);
+    const rows = this.series.map((s, i) => {
+      let best = null, bd = Infinity;
+      for (const p of s.points) { const d = Math.abs(p[0] - ts); if (d < bd) { bd = d; best = p; } }
+      const near = best && bd <= Math.max(this.step, this.cfg.native || 5) * 1.5;
+      return `<div><i style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:${COLORS[i % COLORS.length]}"></i>${esc(this.cfg.label(s))}: <b>${near ? fmtVal(best[1], this.cfg) : "no data"}</b></div>`;
+    });
+    this.tip.innerHTML = `<div class="muted">${stamp(ts)}</div>` + rows.slice(0, 10).join("");
+    this.tip.style.display = "block";
+    const left = x + 14 + this.tip.offsetWidth > r.width ? x - this.tip.offsetWidth - 10 : x + 14;
+    this.tip.style.left = left + "px"; this.tip.style.top = "8px";
+    this.hx = x; this.draw();
+  }
+}
+
+const charts = {};
+for (const c of CHARTS) {
+  const card = document.createElement("div"); card.className = "card"; $("charts").appendChild(card);
+  charts[c.id] = new Chart(card, c);
+}
+
+// ---------- data refresh ----------
+let ALERTS = [];
+// Charts load the full range once, then only fetch points newer than what they have.
+// Re-sending an hour of every series every 5 s would cost the agent more CPU than
+// sampling the machine does.
+const cache = {};  // chart id -> { range, lastTs, series: Map(key -> {name, subject, unit, points}) }
+async function refreshCharts() {
+  const range = RANGE, step = range === "1h" ? 5 : 120, span = range === "1h" ? 3600 : 86400;
+  const res = await Promise.all(CHARTS.map(c => {
+    const k = cache[c.id], inc = k && k.range === range && k.lastTs;
+    const since = inc ? Math.floor(k.lastTs - step) : range;
+    return api(`/metrics?name=${encodeURIComponent(c.names.join(","))}&since=${since}&step=${step}`)
+      .then(r => ({ r, inc })).catch(() => null);
+  }));
+  if (range !== RANGE) return;  // user switched range mid-flight
+  const now = Date.now() / 1000;
+  res.forEach((x, i) => {
+    if (!x) return;
+    const c = CHARTS[i], r = x.r;
+    let k = cache[c.id];
+    if (!x.inc || !k) k = cache[c.id] = { range, lastTs: 0, series: new Map() };
+    for (const s of r.series) {
+      const key = s.name + "|" + s.subject, old = k.series.get(key);
+      if (old && s.points.length) {
+        const first = s.points[0][0];
+        old.points = old.points.filter(p => p[0] < first).concat(s.points);
+      } else if (!old) k.series.set(key, s);
+    }
+    for (const s of k.series.values()) {
+      s.points = s.points.filter(p => p[0] >= now - span);
+      if (s.points.length) k.lastTs = Math.max(k.lastTs, s.points[s.points.length - 1][0]);
+    }
+    const bands = (c.alerts || []).length ? ALERTS.filter(a => c.alerts.includes(a.rule))
+      .map(a => ({ from: a.opened_at, to: a.closed_at || now, sev: a.severity })) : [];
+    const series = [...k.series.values()].sort((a, b) => (a.name + a.subject).localeCompare(b.name + b.subject, undefined, { numeric: true }));
+    charts[c.id].set(series, now - span, now, step, bands);
+  });
+}
+
+async function refreshHealth() {
+  let h;
+  try { h = await api("/health"); } catch (e) {
+    $("badge").className = "badge b-down"; $("badge").textContent = "AGENT UNREACHABLE"; return;
+  }
+  $("badge").className = "badge b-" + h.status; $("badge").textContent = h.status.toUpperCase();
+  document.title = `${h.status.toUpperCase()} · Edge health`;
+  const a = h.agent, s = h.summary;
+  $("host").textContent = a.name || "Zero Forg agent";
+  const stats = [
+    ["CPU", s.cpu_pct != null ? s.cpu_pct.toFixed(1) + "%" : "–"],
+    ["RAM", s.mem_pct != null ? s.mem_pct.toFixed(1) + "%" : "–"],
+    ["agent cpu", a.cpu_pct.toFixed(2) + "%"], ["agent rss", a.rss_mb.toFixed(1) + " MB"],
+    ["db", a.db_mb.toFixed(1) + " MB"], ["tick", a.loop_ms.toFixed(0) + " ms"], ["up", ago(a.uptime_s)],
+  ];
+  if (a.notify && a.notify.enabled) stats.push(["outbox", a.notify.pending + (a.notify.last_error ? " (retrying)" : "")]);
+  $("stats").innerHTML = stats.map(([k, v]) => `<span>${k} <b>${esc(v)}</b></span>`).join("") +
+    (h.problems.length ? `<span style="color:var(--crit)">${esc(h.problems.join(", "))}</span>` : "");
+  $("updated").textContent = "updated " + hhmm(h.checked_at, true);
+  const now = h.checked_at;
+  $("open").innerHTML = h.open_alerts.length ? `<table><tr><th>Severity</th><th>Rule</th><th>Subject</th><th>Opened</th><th>For</th><th class="num">Peak</th><th>Details</th></tr>` +
+    h.open_alerts.map(a => `<tr><td><span class="sev sev-${esc(a.severity)}">${esc(a.severity)}</span></td><td class="mono">${esc(a.rule)}</td>
+      <td>${esc(a.subject)}</td><td class="mono">${stamp(a.opened_at)}</td><td>${ago(now - a.opened_at)}</td>
+      <td class="num">${peak(a)}</td><td class="muted">${esc(a.message)}</td></tr>`).join("") + `</table>`
+    : `<div class="empty">No open alerts. All rules are quiet.</div>`;
+}
+
+async function refreshAlerts() {
+  const sel = $("hist-filter").value;
+  const r = await api("/alerts?limit=200&since=24h");
+  ALERTS = r.alerts;
+  const rules = [...new Set(ALERTS.map(a => a.rule))].sort();
+  const opts = `<option value="">all rules</option>` + rules.map(x => `<option ${x === sel ? "selected" : ""}>${esc(x)}</option>`).join("");
+  if ($("hist-filter").innerHTML !== opts) $("hist-filter").innerHTML = opts;
+  const rows = ALERTS.filter(a => !sel || a.rule === sel);
+  $("history").innerHTML = rows.length ? `<table><tr><th>Rule</th><th>Subject</th><th>Opened</th><th>Closed</th><th>Duration</th><th class="num">Peak</th></tr>` +
+    rows.map(a => `<tr title="${esc(a.message + (a.close_reason ? " | closed: " + a.close_reason : ""))}">
+      <td><span class="sev sev-${esc(a.severity)}">${a.open ? "open" : "closed"}</span> <span class="mono">${esc(a.rule)}</span></td>
+      <td>${esc(a.subject)}</td><td class="mono">${stamp(a.opened_at)}</td><td class="mono">${a.closed_at ? stamp(a.closed_at) : "–"}</td>
+      <td>${ago(a.duration_s)}</td><td class="num">${peak(a)}</td></tr>`).join("") + `</table>`
+    : `<div class="empty">No alerts in the last 24 h.</div>`;
+}
+
+async function refreshProcs() {
+  const r = await api("/processes?limit=15&sort=" + $("proc-sort").value);
+  $("procs").innerHTML = `<table><tr><th class="num">PID</th><th>Name</th><th class="num">CPU %</th><th class="num">RSS</th><th class="num">FDs</th><th>State</th></tr>` +
+    r.processes.map(p => `<tr title="${esc(p.cmdline)}"><td class="num mono">${p.pid}</td>
+      <td>${esc(p.name)} ${p.flags.map(f => `<span class="flag ${f === "watched" ? "" : "hot"}">${esc(f)}</span>`).join("")}</td>
+      <td class="num">${p.cpu_pct != null ? p.cpu_pct.toFixed(1) : "–"}</td><td class="num">${p.rss_mb != null ? p.rss_mb.toFixed(0) + " MB" : "–"}</td>
+      <td class="num">${p.fds ?? "–"}</td><td class="muted">${esc(p.status)}</td></tr>`).join("") + `</table>
+      <div class="muted" style="margin-top:6px">${r.total} processes · ${r.ts_iso ? "sampled " + hhmm(r.ts, true) : ""}</div>`;
+}
+
+async function refreshSystem() {
+  const s = await api("/system");
+  const P = s.probes.results || {};
+  const tile = (k, r, v, sub) => `<div class="tile ${r ? (r.ok ? "ok" : "bad") : ""}"><div class="k">${k}</div><div class="v">${v}</div><div class="s" title="${esc(sub)}">${esc(sub)}</div></div>`;
+  const ms = v => v == null ? "–" : v.toFixed(v >= 100 ? 0 : 1) + " ms";
+  const t = [];
+  if (P.dns) t.push(tile("DNS", P.dns, P.dns.ok ? ms(P.dns.value_ms) : "FAIL", P.dns.error || P.dns.target));
+  if (P.tcp) t.push(tile("TCP connect", P.tcp, P.tcp.ok ? ms(P.tcp.value_ms) : "FAIL", P.tcp.error || P.tcp.target));
+  for (const n of ["gateway", "internet"]) if (P[n]) t.push(tile(n === "gateway" ? "Gateway (LAN)" : "Internet", P[n],
+      P[n].ok ? `${(P[n].loss_pct ?? 0).toFixed(0)}% loss` : "DOWN", `${P[n].target} ${P[n].ok ? "rtt " + ms(P[n].value_ms) : "· " + (P[n].error || "")}`));
+  if (P.http) t.push(tile("API endpoint", P.http, P.http.status ? "HTTP " + P.http.status : "FAIL", `${ms(P.http.value_ms)} · ${P.http.error || P.http.target}`));
+  $("probes").innerHTML = t.join("") || `<div class="empty">Waiting for the first probe round…</div>`;
+  $("disks").innerHTML = s.disks.length ? `<table><tr><th>Mount</th><th>Type</th><th class="num">Used</th><th class="num">Size</th><th style="width:30%">Usage</th></tr>` +
+    s.disks.map(d => `<tr><td class="mono">${esc(d.mount)}</td><td class="muted">${esc(d.fstype)}</td><td class="num">${fmtBytes(d.used)}</td>
+      <td class="num">${fmtBytes(d.total)}</td><td>${d.percent.toFixed(1)}%${d.inodes_percent != null ? ` <span class="muted">· inodes ${d.inodes_percent.toFixed(0)}%</span>` : ""}
+      <div class="bar"><span style="width:${Math.min(100, d.percent)}%;background:${d.percent > 90 ? "var(--crit)" : d.percent > 75 ? "var(--warn)" : "var(--accent)"}"></span></div></td></tr>`).join("") + `</table>` : `<div class="empty">–</div>`;
+  $("ifaces").innerHTML = `<table><tr><th>Interface</th><th>Link</th><th class="num">↓ rx</th><th class="num">↑ tx</th><th class="num">drops</th><th class="num">errors</th></tr>` +
+    s.interfaces.map(i => `<tr><td class="mono">${esc(i.name)}</td><td>${i.up == null ? "–" : i.up ? "up" : `<span style="color:var(--crit)">down</span>`}</td>
+      <td class="num">${i.rx_bps != null ? fmtBytes(i.rx_bps) + "/s" : "–"}</td><td class="num">${i.tx_bps != null ? fmtBytes(i.tx_bps) + "/s" : "–"}</td>
+      <td class="num">${i.drops_total}</td><td class="num">${i.errors_total}</td></tr>`).join("") + `</table>`;
+  $("ports").innerHTML = `<div class="muted" style="margin-bottom:4px">${s.listening.length} listening sockets</div>` +
+    s.listening.slice(0, 40).map(p => `<span class="flag mono" title="${esc(p.process ? p.process + " pid " + p.pid : "owner not visible without root")}">${esc(p.proto)} ${esc(p.addr)}:${p.port}${p.process ? " · " + esc(p.process) : ""}</span>`).join("");
+}
+
+async function tick() {
+  await Promise.allSettled([refreshHealth(), refreshAlerts().then(() => RANGE === "1h" ? refreshCharts() : null), refreshProcs(), refreshSystem()]);
+}
+let slowTimer = null;
+function setRange(r) {
+  RANGE = r;
+  document.querySelectorAll("#range button").forEach(b => b.classList.toggle("on", b.dataset.r === r));
+  clearInterval(slowTimer);
+  refreshCharts();
+  if (r === "24h") slowTimer = setInterval(refreshCharts, 60000);
+}
+$("range").addEventListener("click", e => { if (e.target.dataset.r) setRange(e.target.dataset.r); });
+$("proc-sort").addEventListener("change", refreshProcs);
+$("hist-filter").addEventListener("change", refreshAlerts);
+tick().then(refreshCharts);
+setInterval(tick, 5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: pytest
+      - name: Smoke test the real agent
+        run: |
+          python -m healthagent -c config.toml --check-config
+          python -m healthagent --db /tmp/ci.db --port 8799 &
+          for i in $(seq 20); do curl -sf localhost:8799/health && break; sleep 1; done
+          sleep 6
+          curl -sf localhost:8799/health | python -m json.tool
+          curl -sf 'localhost:8799/metrics?name=cpu.total&since=1m' | python -c 'import json,sys; s=json.load(sys.stdin)["series"]; assert s and s[0]["points"], s'
+          kill %1

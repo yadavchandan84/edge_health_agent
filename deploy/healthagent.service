@@ -1,0 +1,36 @@
+# systemd unit for an edge box.
+#   sudo useradd --system --no-create-home healthagent
+#   sudo python3 -m venv /opt/healthagent && sudo /opt/healthagent/bin/pip install /path/to/zeroforg-agent
+#   sudo install -D -m 644 config.toml /etc/healthagent/config.toml
+#   sudo cp deploy/healthagent.service /etc/systemd/system/ && sudo systemctl enable --now healthagent
+[Unit]
+Description=Zero Forg edge health agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=healthagent
+ExecStart=/opt/healthagent/bin/healthagent -c /etc/healthagent/config.toml
+StateDirectory=healthagent
+WorkingDirectory=/var/lib/healthagent
+Restart=always
+RestartSec=5
+
+# Guard rails around the 5 % CPU / 150 MB budget: a bug in the agent must never
+# starve the camera workload it is there to protect.
+MemoryMax=200M
+CPUQuota=20%
+Nice=5
+
+# Least privilege. Reading /proc and /sys needs nothing special; ping needs CAP_NET_RAW
+# on systems where unprivileged ICMP sockets are disabled.
+AmbientCapabilities=CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_RAW
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
