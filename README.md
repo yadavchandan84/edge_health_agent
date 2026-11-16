@@ -12,7 +12,7 @@ API and a single-page dashboard. The only dependency is `psutil`.
 **Measured on Linux** (Ubuntu, kernel 6.6, 16 cores, 338 processes): **0.9 % of one
 core idle, 1.35 % with the dashboard open, 34 MB RSS**. The budget is 5 % and 150 MB.
 
-**97 tests** pin down every rule from the brief with a fake clock. They pass on Linux
+**98 tests** pin down every rule from the brief with a fake clock. They pass on Linux
 and Windows, and CI runs them on Python 3.11–3.13 together with lint and a smoke test
 of the real agent.
 
@@ -292,7 +292,7 @@ minute so you can watch the agent queue and retry.
 
 ```bash
 pip install -e ".[dev]"
-pytest          # 97 tests, ~6 s
+pytest          # 98 tests, ~6 s
 ruff check .
 ```
 
@@ -302,7 +302,7 @@ ruff check .
 | [`tests/test_probes.py`](tests/test_probes.py) | A hung resolver: the first round times out, later rounds return at once, other probes keep working, no thread per round. TCP falls back to the last resolved address; the gateway is remembered when the route disappears |
 | [`tests/test_notify.py`](tests/test_notify.py) | Signed, in-order delivery; backoff during an outage; the queue survives a restart; poison events are dropped; delivery ids are unique even after the queue drains |
 | [`tests/test_storage.py`](tests/test_storage.py) | Range and bucket queries, prefix filters with escaped `LIKE` wildcards, idempotent rollups, retention bounds, series cleanup, closed-alert expiry |
-| [`tests/test_api.py`](tests/test_api.py) | A real agent sampling the real machine behind the real HTTP server: every endpoint, 400/401/404/405, token auth, gzip |
+| [`tests/test_api.py`](tests/test_api.py) | A real agent sampling the real machine behind the real HTTP server: every endpoint, 400/401/404/405, token auth, gzip. A second agent on a busy port exits with a clear message |
 | [`tests/test_rates_config_parsing.py`](tests/test_rates_config_parsing.py) | Counter resets; config typos and bad values rejected at startup; ping output from iputils, BusyBox and Windows (including Windows' "unreachable counts as a reply"); `/proc/net/route`; IPv4/IPv6 from `/proc/net/tcp` |
 
 Writing the tests and re-running the live scenarios found two real bugs, both now
@@ -545,7 +545,7 @@ healthagent/
   storage.py           SQLite schema, writes, rollups, retention, queries
   api.py               HTTP API and dashboard server
   static/index.html    the dashboard (no external assets)
-tests/                 97 tests: rules, probes, notify, storage, API, parsers
+tests/                 98 tests: rules, probes, notify, storage, API, parsers
 demo/                  scripts for every scenario, live alert viewer, webhook receiver
 docs/DEMO.md           timed runbook for the recording
 deploy/                systemd unit

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import socket
 import time
 import urllib.error
 import urllib.request
@@ -11,6 +12,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from healthagent.__main__ import main
 from healthagent.agent import Agent
 from healthagent.api import BadRequest, parse_time, serve
 from healthagent.config import load_config
@@ -120,3 +122,17 @@ def test_parse_time() -> None:
     assert parse_time(None, now, 42) == 42
     with pytest.raises(BadRequest):
         parse_time("soon", now, 0)
+
+
+def test_second_agent_on_a_busy_port_exits_with_a_clear_message(tmp_path, capsys) -> None:
+    holder = socket.socket()  # stands in for an agent that is already running
+    holder.bind(("127.0.0.1", 0))
+    holder.listen()
+    port = holder.getsockname()[1]
+    try:
+        code = main(["--db", str(tmp_path / "second.db"), "--host", "127.0.0.1", "--port", str(port)])
+    finally:
+        holder.close()
+    assert code == 1
+    err = capsys.readouterr().err
+    assert f"port {port}" in err and "already in use" in err and "Traceback" not in err

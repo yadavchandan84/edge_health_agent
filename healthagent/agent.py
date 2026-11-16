@@ -218,6 +218,10 @@ class Agent:
     def run_forever(self) -> None:
         from .api import serve  # local import keeps the agent usable without the API
 
+        # Bind first: if the port is taken (another agent is running), fail before
+        # touching signal handlers or starting any thread.
+        server = serve(self, self.cfg.api.host, self.cfg.api.port)
+
         def _stop(signum: int, _frame: Any) -> None:
             log.info("signal %s: shutting down", signum)
             self.stop_event.set()
@@ -226,7 +230,6 @@ class Agent:
         if hasattr(signal, "SIGTERM"):
             signal.signal(signal.SIGTERM, _stop)
 
-        server = serve(self, self.cfg.api.host, self.cfg.api.port)
         log.info("healthagent %s pid %d: dashboard on http://%s:%d/  db=%s  rules=%s",
                  __version__, os.getpid(), self.cfg.api.host, self.cfg.api.port, self.db.path,
                  ",".join(r.name for r in self.rules))

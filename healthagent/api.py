@@ -25,6 +25,7 @@ import json
 import logging
 import math
 import re
+import sys
 import threading
 import time
 from datetime import datetime
@@ -308,10 +309,16 @@ def make_handler(api: Api, token: str) -> type[BaseHTTPRequestHandler]:
     return Handler
 
 
+class _Server(ThreadingHTTPServer):
+    daemon_threads = True
+    # On Windows, SO_REUSEADDR lets a second process bind a port that is already in
+    # use, so two agents would silently share it. There, binding must fail instead.
+    allow_reuse_address = not sys.platform.startswith("win")
+
+
 def serve(agent: Agent, host: str, port: int) -> ThreadingHTTPServer:
     api = Api(agent)
-    server = ThreadingHTTPServer((host, port), make_handler(api, agent.cfg.api.token))
-    server.daemon_threads = True
+    server = _Server((host, port), make_handler(api, agent.cfg.api.token))
     t = threading.Thread(target=server.serve_forever, name="http", daemon=True)
     t.start()
     return server

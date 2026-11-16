@@ -63,7 +63,7 @@ and close below also shows up in T5, signed and in order.
 | 7:30 | Click "Last 24 h", then show the alert history table | Every alert has opened, closed, duration and peak | |
 | 7:50 | `curl -s 'localhost:8765/alerts?open=false&limit=20' \| python3 -m json.tool \| less` | The same data over the API, with ISO timestamps | |
 | 8:10 | Point at the "Agent self" charts | CPU ~1 % of one core, RSS ~34 MB | Under 5 % / 150 MB |
-| 8:20 | `.venv/bin/pytest` | Every rule above is also pinned down by a test with a fake clock | `97 passed` in ~6 s |
+| 8:20 | `.venv/bin/pytest` | Every rule above is also pinned down by a test with a fake clock | `98 passed` in ~6 s |
 
 ## Network toggle modes
 

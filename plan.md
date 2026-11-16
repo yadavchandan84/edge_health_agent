@@ -136,7 +136,7 @@ of 10 (the brief allows other numbers if defended).
 
 | Item | Why | Result |
 |---|---|---|
-| Test suite (pytest) | Back the "deterministic rules" claim with something a reviewer can run | 97 tests, ~6 s, Linux and Windows |
+| Test suite (pytest) | Back the "deterministic rules" claim with something a reviewer can run | 98 tests, ~6 s, Linux and Windows |
 | Alerts off the box | The agent exists for failures nobody sees; an alert that never leaves the box does not help | Webhook with a transactional SQLite outbox, ordered, signed, retried with backoff, flushed when the uplink returns |
 | `required` watch entries | A pipeline that never came back after a reboot was invisible | `process_died` "name (not running)" after a 60 s grace |
 | CI and lint | Every push proves the tests still pass | GitHub Actions on Python 3.11-3.13: ruff, pytest, live smoke test |
