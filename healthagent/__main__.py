@@ -15,7 +15,7 @@ PORT_IN_USE = {errno.EADDRINUSE, getattr(errno, "WSAEADDRINUSE", errno.EADDRINUS
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="healthagent", description="Zero Forg edge health agent")
+    ap = argparse.ArgumentParser(prog="healthagent", description="Edge Health Agent")
     ap.add_argument("-c", "--config", help="TOML config file (defaults are used when omitted)")
     ap.add_argument("--db", help="override agent.db_path")
     ap.add_argument("--host", help="override api.host")

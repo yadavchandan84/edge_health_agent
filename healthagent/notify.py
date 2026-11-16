@@ -90,7 +90,7 @@ class WebhookNotifier:
         body = row["payload"].encode()
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": f"zeroforg-healthagent/{__version__}",
+            "User-Agent": f"edge-health-agent/{__version__}",
             "X-Healthagent-Event": row["event"],
             "X-Healthagent-Delivery": row["uid"],
         }

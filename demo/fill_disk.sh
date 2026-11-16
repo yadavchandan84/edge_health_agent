@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 # Scenario 3: fill a small throwaway filesystem (never your real disk).
 #
-#   sudo bash demo/fill_disk.sh up          # mount a 64 MB tmpfs at /mnt/zf-disk-test
+#   sudo bash demo/fill_disk.sh up          # mount a 64 MB tmpfs at /mnt/demo-disk
 #   sudo bash demo/fill_disk.sh up-loop     # or: a 64 MB ext4 loopback image instead
 #   sudo bash demo/fill_disk.sh fill 95     # write 2 MB files until the mount is 95 % full
 #   sudo bash demo/fill_disk.sh clean       # delete the files  -> disk_high closes
 #   sudo bash demo/fill_disk.sh down        # unmount and remove
 set -euo pipefail
 
-MNT="${MNT:-/mnt/zf-disk-test}"
+MNT="${MNT:-/mnt/demo-disk}"
 SIZE_MB="${SIZE_MB:-64}"
-IMG="${IMG:-/tmp/zf-disk-test.img}"
+IMG="${IMG:-/tmp/demo-disk.img}"
 ts() { date +%H:%M:%S; }
 pct() { df --output=pcent "$MNT" | tail -1 | tr -dc '0-9'; }
 
 case "${1:-}" in
   up)
     mkdir -p "$MNT"
-    mountpoint -q "$MNT" || mount -t tmpfs -o "size=${SIZE_MB}m" zf-disk-test "$MNT"
+    mountpoint -q "$MNT" || mount -t tmpfs -o "size=${SIZE_MB}m" demo-disk "$MNT"
     echo "[$(ts)] tmpfs mounted"; df -h "$MNT" ;;
   up-loop)
     mkdir -p "$MNT"

@@ -111,7 +111,7 @@ def parse_ping(out: str, count: int, windows: bool) -> tuple[float, float | None
 
 
 def _http(url: str, timeout: float) -> tuple[float, int]:
-    req = urllib.request.Request(url, headers={"User-Agent": f"zeroforg-healthagent/{__version__}"})
+    req = urllib.request.Request(url, headers={"User-Agent": f"edge-health-agent/{__version__}"})
     t0 = time.perf_counter()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:

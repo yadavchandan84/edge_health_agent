@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Edge health · Zero Forg</title>
+<title>Edge Health Agent</title>
 <style>
   :root {
     --bg: #0f1216; --panel: #171b21; --panel2: #1d222a; --line: #2a313b; --text: #e6e9ee;
@@ -67,7 +67,7 @@
 </head>
 <body>
 <header>
-  <h1>Edge health <small id="host">Zero Forg agent</small></h1>
+  <h1>Edge health <small id="host">connecting…</small></h1>
   <span id="badge" class="badge b-down">CONNECTING</span>
   <div class="stats" id="stats"></div>
   <div class="spacer"></div>
@@ -328,7 +328,7 @@ async function refreshHealth() {
   $("badge").className = "badge b-" + h.status; $("badge").textContent = h.status.toUpperCase();
   document.title = `${h.status.toUpperCase()} · Edge health`;
   const a = h.agent, s = h.summary;
-  $("host").textContent = a.name || "Zero Forg agent";
+  $("host").textContent = a.name || "edge box";
   const stats = [
     ["CPU", s.cpu_pct != null ? s.cpu_pct.toFixed(1) + "%" : "–"],
     ["RAM", s.mem_pct != null ? s.mem_pct.toFixed(1) + "%" : "–"],

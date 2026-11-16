@@ -1,10 +1,10 @@
 # systemd unit for an edge box.
 #   sudo useradd --system --no-create-home healthagent
-#   sudo python3 -m venv /opt/healthagent && sudo /opt/healthagent/bin/pip install /path/to/zeroforg-agent
+#   sudo python3 -m venv /opt/healthagent && sudo /opt/healthagent/bin/pip install /path/to/Edge_Health_Agent
 #   sudo install -D -m 644 config.toml /etc/healthagent/config.toml
 #   sudo cp deploy/healthagent.service /etc/systemd/system/ && sudo systemctl enable --now healthagent
 [Unit]
-Description=Zero Forg edge health agent
+Description=Edge Health Agent
 After=network-online.target
 Wants=network-online.target
 

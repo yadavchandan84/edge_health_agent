@@ -12,7 +12,7 @@ Any Linux machine you own: a VM, a Raspberry Pi, or WSL2 Ubuntu. You need root o
 for the tmpfs mount and the network toggle.
 
 ```bash
-cd zeroforg-agent
+cd Edge_Health_Agent
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 rm -f demo.db*                                  # start with a clean history
 ```
@@ -49,7 +49,7 @@ and close below also shows up in T5, signed and in order.
 | 2:10 | `.venv/bin/python demo/mem_pressure.py --target 93 --hold 30` | Memory chart crosses the 90 % line | `ram_high` opens within one sample (5 s) |
 | 2:50 | It releases memory | | `ram_high` closes on the first sample < 85 % |
 | 2:55 | `python3 demo/leak.py --mb 8 --every 10 &` | Note the PID it prints. It keeps running in the background | |
-| 3:05 | `sudo bash demo/fill_disk.sh up` then `sudo bash demo/fill_disk.sh fill 95` | Small tmpfs, not the real disk. Filesystems table shows it at 97 % | `disk_high` on `/mnt/zf-disk-test` within 5 s |
+| 3:05 | `sudo bash demo/fill_disk.sh up` then `sudo bash demo/fill_disk.sh fill 95` | Small tmpfs, not the real disk. Filesystems table shows it at 97 % | `disk_high` on `/mnt/demo-disk` within 5 s |
 | 3:40 | `sudo bash demo/fill_disk.sh clean` | | `disk_high` closes |
 | 3:45 | T5: Ctrl-C | "The central service is unreachable now" | |
 | 3:50 | `kill -9 $(pgrep -f watched_service.py)` | Header shows `outbox 1 (retrying)` | `process_died` "camera-sim pid N (python3)" within 5 s |

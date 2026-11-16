@@ -1,7 +1,10 @@
-# Zero Forg edge health agent
+# Edge Health Agent
 
 One Python process that watches an unattended edge box and notices first when it
 fills its disk, leaks memory, loses a process or loses its uplink.
+
+*Originally built as a take-home assignment for Zero Forg. "The brief" below refers to
+that assignment.*
 
 It samples the machine every 5 s, probes the network every 15 s, keeps 7 days of
 history in SQLite, raises alerts on fixed rules, and serves everything over an HTTP
@@ -100,7 +103,7 @@ started.
 | 1 | Busy loop on all 16 cores for 80 s | `demo/cpu_burn.py` | **+69.7 s** (never before +60) | +99.7 s | `cpu total`, peak 100 % |
 | 2a | Allocate RAM to 93 %, hold 25 s | `demo/mem_pressure.py` | +9.8 s (allocation took 8 s) | +34.8 s, right after release | `ram`, peak 93.4 % |
 | 2b | Leak 8 MB every 10 s | `demo/leak.py` | 104 s after the leak started | 3 samples after growth stopped | `pid 560 (python)`, +80 MB |
-| 3 | Fill a 64 MB tmpfs to 97 % | `demo/fill_disk.sh` | next sample (5 s) | next sample after cleanup | `/mnt/zf-disk-test`, peak 96.9 % |
+| 3 | Fill a 64 MB tmpfs to 97 % | `demo/fill_disk.sh` | next sample (5 s) | next sample after cleanup | `/mnt/demo-disk`, peak 96.9 % |
 | 4 | `kill -9` the watched process | `demo/watched_service.py` | 2.7 s after the kill | when it was restarted | `camera-sim pid 589 (python3)` |
 | 5 | Interface down for 75 s | `demo/net_toggle.sh` | +33.9 s (3rd failed round) | +78.9 s (first good round) | `gateway 172.26.48.1`, `internet 1.1.1.1`, peak 5 failures |
 | + | Zombie child for 45 s | `demo/zombie.py` | after 35 s in state Z | when reaped | `pid 998 (python)` |

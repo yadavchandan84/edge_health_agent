@@ -16,7 +16,7 @@ set -euo pipefail
 
 SECS="${1:-75}"
 PORT="${PORT:-8765}"
-CHAIN=ZF_DEMO
+CHAIN=EDGE_HEALTH_DEMO
 ts() { date +%H:%M:%S; }
 
 if [ -z "${MODE:-}" ]; then

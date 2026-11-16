@@ -1,6 +1,6 @@
 # Demo config for the recorded walkthrough (docs/DEMO.md).
 #
-# Every threshold from the brief is unchanged. One number is shortened so the whole
+# Every threshold from the assignment brief is unchanged. One number is shortened so the whole
 # demo fits a 10-minute recording:
 #
 #   memory_climbing.sample_interval: 60 s -> 10 s
@@ -10,6 +10,8 @@
 # CPU high still needs 60 s, network lost still needs 3 failed 15 s rounds.
 
 [agent]
+# A fixed box name, so screenshots and recordings show this instead of your hostname.
+name = "edge-box-01"
 # Relative to where you start the agent. Keep it on a real disk: on WSL, /tmp is wiped
 # whenever the distro shuts down, and /mnt/c (9p) is slow and unsafe for SQLite locking.
 db_path = "demo.db"

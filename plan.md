@@ -1,4 +1,4 @@
-# Plan: Zero Forg edge health agent
+# Plan: Edge Health Agent
 
 ## 1. Goal
 

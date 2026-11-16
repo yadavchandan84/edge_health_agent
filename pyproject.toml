@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zeroforg-healthagent"
+name = "edge-health-agent"
 version = "1.0.0"
 description = "Single-process health agent for unattended edge boxes: metrics, probes, alerts, API and dashboard"
 readme = "README.md"

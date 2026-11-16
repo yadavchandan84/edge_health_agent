@@ -1,4 +1,4 @@
-# Zero Forg edge health agent: production defaults.
+# Edge Health Agent: production defaults.
 # Every key is optional; anything left out uses the default shown in healthagent/config.py.
 # Unknown keys are rejected at startup, so a typo cannot silently fall back to a default.
 
